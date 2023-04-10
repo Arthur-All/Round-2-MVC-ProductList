@@ -1,0 +1,230 @@
+﻿<!DOCTYPE html>
+<html>
+<head>
+    <title>Product Recommendations</title>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.0/css/bootstrap.min.css">
+    <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
+    <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+
+</head>
+<body>
+    <!-- Table -->
+    <div class="container">
+        <h1>Product Recommendations</h1>
+        <table class="table">
+            <thead>
+                <tr>
+                    <th scope="col">IDs</th>
+                    <th scope="col">Product</th>
+                    <th scope="col">Price</th>
+                </tr>
+            </thead>
+            <tbody id="product-list">
+                <!-- products will be appended here -->
+            </tbody>
+        </table>
+        <button id="addProductBtn" class="btn btn-primary">Add Product</button>
+    </div>
+
+
+
+    <!-- Edit Product Modal -->
+<div class="modal fade" id="editProductModal" tabindex="-1" role="dialog" aria-labelledby="editProductModalLabel" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="editProductModalLabel">Edit Product</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <form>
+                    <div class="form-group">
+                        <label for="id" class="col-form-label">ID:</label>
+                        <input type="text" class="form-control" id="id">
+                    </div>
+                    <div class="form-group">
+                        <label for="name" class="col-form-label">Name:</label>
+                        <input type="text" class="form-control" id="name">
+                    </div>
+                    <div class="form-group">
+                        <label for="price" class="col-form-label">Price:</label>
+                        <input type="text" class="form-control" id="price">
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-primary" id="saveChangesBtn">Save Changes</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+    <!-- Add product modal -->
+    <div class="modal fade" id="addProductModal" tabindex="-1" role="dialog" aria-labelledby="addProductModalLabel" aria-hidden="true">
+        <div class="modal-dialog" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="addProductModalLabel">Add Product</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <form id="addProductForm">
+                        <div class="form-group">
+                            <label for="productName">Name</label>
+                            <input type="text" class="form-control" id="productName" name="productName" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="productPrice">Price</label>
+                            <input type="number" class="form-control" id="productPrice" name="productPrice" required>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+                    <button type="button" class="btn btn-primary" id="saveProductBtn">Save changes</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+
+
+
+    <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
+    <script>
+        $(document).ready(function () {
+            //GETALL           
+            $.ajax({
+                    type: 'GET',
+                    url: '@Url.Action("GetAllProduct", "Product")',
+                    success: function (data) {
+                        var productList = $('#product-list');
+                        productList.empty();
+                         $.each(data, function (index, product) {
+                            productList.append(
+                                '<tr><th scope="row">' + product.id + '</th><td>' + product.name + '</td><td>' + product.price + 
+                                '</td><td><button class="btn btn-primary btn-sm" data-id="' + product.id + '" data-name="' + product.name + '" data-price="' + product.price + 
+                                '" data-toggle="modal" data-target="#editProductModal">Edit</button></td>  <td><button class="btn btn-danger btn-sm"> Delete </button></td>   <td><button class="btn btn-success btn-sm"> Buy </button></td></tr>'
+                            );
+                         });
+                     }
+                });
+            
+            //DELETE
+            $('#product-list').on('click', '.btn-danger', function () {
+                var row = $(this).closest('tr');
+                var id = row.find('th').text();
+                $.ajax({
+                    type: 'DELETE',
+                    url: '/api/Product/DeleteProduct/' + id,
+                    success: function (data) {
+                        row.remove();
+                        alert(data);
+                    },
+                    error: function (jqXHR, textStatus, errorThrown) {
+                        alert('Error deleting product: ' + textStatus + ' - ' + errorThrown);
+                    }
+                });
+            });
+            
+            //UPDATE
+            $('#editProductModal').on('show.bs.modal', function (event) {
+                event.preventDefault();
+                var button = $(event.relatedTarget);
+                var id = button.data('id');
+                var name = button.data('name');
+                var price = button.data('price');
+                var modal = $(this);
+                modal.find('.modal-body #id').val(id);
+                modal.find('.modal-body #name').val(name);
+                modal.find('.modal-body #price').val(price);
+                $('#editProductModal').modal('show');
+            });
+            $('#saveChangesBtn').on('click', function (event) {
+                event.preventDefault();
+                var form = $('#editProductModal form');
+                var id = form.find('#id').val();
+                var name = form.find('#name').val();
+                var price = form.find('#price').val();
+                var product = { id: id, name: name, price: price };
+                console.log(product)
+                $.ajax({
+                    type: 'PUT',
+                    url: '/api/Product/UpdateProduct',
+                    data: JSON.stringify(product),
+                    contentType: 'application/json',
+                    success: function (data) {
+                        $('#editProductModal').modal('hide');
+                        alert(data); 
+                        location.reload();
+                    },
+                    error: function (jqXHR, textStatus, errorThrown) {
+                        alert('Error updating product: ' + textStatus + ' - ' + errorThrown);
+                    }
+                });
+                
+            });
+            //!UPDATE
+
+            //CreateProduct
+            $('#addProductBtn').click(function () {
+                $('#addProductForm')[0].reset();
+                $('#addProductModal').modal('show');
+            });
+            $('#saveProductBtn').click(function () {
+                // Get form data
+                var name = $('#productName').val();
+                var price = $('#productPrice').val();
+                var data = { name: name, price: price };
+
+                // Send the AJAX request to the server
+                $.ajax({
+                    type: 'POST',
+                    url: '/api/Product/CreateProduct',
+                    data: JSON.stringify(data),
+                    contentType: 'application/json',
+                    success: function (result) {
+                        // Hide the modal
+                        $('#addProductModal').modal('hide');
+                        alert(result);
+                        location.reload();
+                    },
+                    error: function (jqXHR, textStatus, errorThrown) {
+                        alert('Error adding product: ' + textStatus + ' - ' + errorThrown);
+                    }
+                });
+            });
+            //!CreateProduct
+
+            //Add In cart
+            $('#product-list').on('click', '.btn-success', function () {
+                var row = $(this).closest('tr');
+                var id = row.find('th').text();
+                $.ajax({
+                    type: 'PUT',
+                    url: '/api/Product/AddInCart/' + id,
+                    success: function (data) {
+                        row.remove();
+                        alert(data);
+                    },
+                    error: function (jqXHR, textStatus, errorThrown) {
+                        alert('Error deleting product: ' + textStatus + ' - ' + errorThrown);
+                    }
+                });
+            });
+
+
+        });
+ 
+    </script>
+
+</body>
+</html>
